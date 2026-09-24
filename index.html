@@ -100,7 +100,7 @@
             animation: shoot 0.08s ease-out;
         }
 
-        @keyframes shoot {
+        @keyframes shoot { 
             0% { transform: translateX(-50%) translateY(15px) scale(1.1); }
             100% { transform: translateX(-50%) translateY(0) scale(1); }
         }
@@ -231,7 +231,7 @@
         scene.add(ceilingGrid);
 
         // --- CONTROLS ---
-        let, moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
         const velocity = new THREE.Vector3();
         let yaw = 0, pitch = 0;
 
@@ -422,13 +422,18 @@
 
                 const dirZ = Number(moveForward) - Number(moveBackward);
                 const dirX = Number(moveRight) - Number(moveLeft);
-                const moveDir = new THREE.Vector3(dirX, 0, -dirZ).normalize();
+                const dirLen = Math.hypot(dirX, dirZ) || 1;
 
-                if (moveForward || moveBackward) velocity.z -= moveDir.z * 80.0 * delta;
-                if (moveLeft || moveRight) velocity.x -= moveDir.x * 80.0 * delta;
+                if (moveForward || moveBackward) velocity.z -= (dirZ / dirLen) * 80.0 * delta;
+                if (moveLeft || moveRight) velocity.x -= (dirX / dirLen) * 80.0 * delta;
 
-                camera.translateX(-velocity.x * delta);
-                camera.translateZ(velocity.z * delta);
+                // Yaw only: looking up or down must not fly the camera or slow walking.
+                const sinY = Math.sin(yaw);
+                const cosY = Math.cos(yaw);
+                const forwardAmt = -velocity.z * delta;
+                const rightAmt = -velocity.x * delta;
+                camera.position.x += -sinY * forwardAmt + cosY * rightAmt;
+                camera.position.z += -cosY * forwardAmt - sinY * rightAmt;
                 camera.position.y = 1.6;
                 pointLight.position.copy(camera.position);
 
@@ -507,7 +512,7 @@
 
                     // Hit Player
                     if (e.mesh.position.distanceTo(camera.position) < 1.4) {
-                        health -= 15;
+                        health -= 10;
                         playSound('hurt');
                         document.getElementById('health').innerText = health;
                         createExplosion(e.mesh.position, 0xff0000, 15);
